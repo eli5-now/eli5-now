@@ -5,7 +5,7 @@ description = "AI-powered explanations for curious children"
 readme = "../README.md"
 requires-python = ">=3.12"
 authors = [
-    {name = "ELI5 Now Contributors"}
+    {name = "Srikanth Cherla"}
 ]
 license = {text = "MIT"}
 dependencies = [
