@@ -219,6 +219,43 @@ feat: Short description (#issue-number)
 
 **Do NOT add Co-Authored-By or any AI attribution to commits.** Keep commit messages clean and professional.
 
+## Git Workflow
+
+**Always use feature branches and PRs** - never push directly to main.
+
+### Workflow for Each Issue
+
+```bash
+# 1. Start from latest main
+git checkout main
+git pull origin main
+
+# 2. Create feature branch
+git checkout -b issue-N-short-description
+
+# 3. Make small commits frequently
+git add <files>
+git commit -m "feat: Description of small change"
+
+# 4. Push and create PR
+git push -u origin issue-N-short-description
+gh pr create --title "feat: Title (#N)" --body "..."
+
+# 5. After PR is approved and merged
+git checkout main
+git pull origin main
+git branch -d issue-N-short-description
+```
+
+### Branch Naming
+
+Format: `issue-N-short-description`
+
+Examples:
+- `issue-1-backend-skeleton`
+- `issue-5-chat-input-component`
+- `issue-12-react-agent-setup`
+
 ## Important Context
 
 - **Developer background**: ML researcher, Python expert, less familiar with TypeScript
