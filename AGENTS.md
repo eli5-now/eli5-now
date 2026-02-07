@@ -219,6 +219,13 @@ feat: Short description (#issue-number)
 
 **Do NOT add Co-Authored-By or any AI attribution to commits.** Keep commit messages clean and professional.
 
+### Addressing PR Review Comments
+
+When addressing PR review comments:
+- **Make one commit per comment addressed** (where a change is needed)
+- This makes it easy for the reviewer to verify each comment was addressed
+- Use clear commit messages that reference what was changed
+
 ## Git Workflow
 
 **Always use feature branches and PRs** - never push directly to main.
