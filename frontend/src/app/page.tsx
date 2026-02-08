@@ -1,3 +1,19 @@
+import { MessageList } from '@/components/MessageList';
+
+const mockMessages = [
+  {
+    id: '1',
+    role: 'user' as const,
+    content: 'Why is the sky blue?',
+  },
+  {
+    id: '2',
+    role: 'assistant' as const,
+    content:
+      "Great question! The sky is blue because of the way sunlight plays with the air. Sunlight looks white, but it's actually made of all the colors of the rainbow mixed together. When sunlight hits the tiny bits of air way up high, the blue part of the light bounces around the most — like a ball bouncing off walls! That's why when you look up, you see blue everywhere.",
+  },
+];
+
 export default function Home() {
   return (
     <div className="flex flex-col h-screen">
@@ -16,12 +32,7 @@ export default function Home() {
         className="flex-1 overflow-y-auto p-4"
         style={{ backgroundColor: 'var(--background)' }}
       >
-        <p
-          className="text-center mt-8"
-          style={{ color: 'var(--foreground-subtle)' }}
-        >
-          Ask Eli anything!
-        </p>
+        <MessageList messages={mockMessages} />
       </main>
 
       {/* Input area placeholder */}
