@@ -1,3 +1,6 @@
+'use client';
+
+import { ChatInput } from '@/components/ChatInput';
 import { MessageList } from '@/components/MessageList';
 
 const mockMessages = [
@@ -35,17 +38,12 @@ export default function Home() {
         <MessageList messages={mockMessages} />
       </main>
 
-      {/* Input area placeholder */}
+      {/* Input area */}
       <footer
         className="p-4 border-t"
         style={{ borderColor: 'var(--surface-alt)', backgroundColor: 'var(--surface)' }}
       >
-        <div
-          className="rounded-full px-4 py-3"
-          style={{ backgroundColor: 'var(--surface-alt)', color: 'var(--foreground-subtle)' }}
-        >
-          Type your question here...
-        </div>
+        <ChatInput onSubmit={(msg) => console.log('User asked:', msg)} />
       </footer>
     </div>
   );
