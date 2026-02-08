@@ -13,3 +13,9 @@ app = FastAPI(
 async def root():
     """Root endpoint."""
     return {"message": "Welcome to ELI5 Now!", "status": "ok"}
+
+
+@app.get("/health")
+async def health():
+    """Health check endpoint for monitoring."""
+    return {"status": "healthy"}
