@@ -18,7 +18,7 @@ eli5-now/
 
 ```bash
 cd backend
-uv sync
+uv sync --group api --group dev
 uv run uvicorn app.main:app --reload
 ```
 
