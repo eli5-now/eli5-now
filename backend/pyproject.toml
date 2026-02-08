@@ -1,0 +1,67 @@
+[project]
+name = "eli5-now"
+version = "0.1.0"
+description = "AI-powered explanations for curious children"
+readme = "../README.md"
+requires-python = ">=3.12"
+authors = [
+    {name = "Srikanth Cherla"}
+]
+license = {text = "MIT"}
+dependencies = []
+
+[dependency-groups]
+api = [
+    "fastapi>=0.115.0",
+    "uvicorn>=0.34.0",
+    "pydantic>=2.0.0",
+    "pydantic-settings>=2.0.0",
+    "python-dotenv>=1.0.0",
+]
+dev = [
+    "pytest>=8.0.0",
+    "pytest-asyncio>=0.25.0",
+    "pytest-cov>=6.0.0",
+    "ruff>=0.9.0",
+    "mypy>=1.14.0",
+    "ipdb>=0.13.0",
+    "ipython>=8.0.0",
+    "typing-extensions>=4.0.0",
+    "debugpy>=1.8.0",
+]
+llm = [
+    "llama-index>=0.12.0",
+    "llama-index-llms-openai>=0.3.0",
+    "llama-index-llms-anthropic>=0.6.0",
+    "httpx>=0.28.0",
+]
+db = [
+    "sqlalchemy>=2.0.0",
+    "alembic>=1.14.0",
+    "aiosqlite>=0.20.0",
+]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[tool.hatch.build.targets.wheel]
+packages = ["app"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"
+addopts = ["-ra", "--strict-markers"]
+
+[tool.ruff]
+line-length = 100
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E", "W", "F", "I", "N", "UP"]
+ignore = ["E501"]
+
+[tool.mypy]
+python_version = "3.12"
+ignore_missing_imports = true
+check_untyped_defs = true
