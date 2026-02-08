@@ -39,7 +39,14 @@ Streaming SSE response with "thinking" updates
 
 ## Critical Development Rules
 
-### 1. Small, Incremental Changes (MOST IMPORTANT)
+### 1. Explain Before Changing
+
+**Before making any code changes, briefly explain what you're about to do** (1-2 sentences). The developer wants to understand each change before it happens.
+
+Example:
+> "I'm adding the MessageList component to page.tsx with mock conversation data so you can see the message bubbles in action."
+
+### 2. Small, Incremental Changes (MOST IMPORTANT)
 
 **Every PR must be:**
 - **Small**: <200 lines of code changed ideally, max 400
