@@ -3,6 +3,8 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
+from app.routes.ask import router as ask_router
+
 app = FastAPI(
     title="ELI5 Now!",
     description="AI-powered explanations for curious children",
@@ -20,6 +22,8 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+app.include_router(ask_router)
 
 
 @app.get("/")
