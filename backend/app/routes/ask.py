@@ -2,6 +2,7 @@
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
+from llama_index.core.llms import ChatMessage
 from pydantic import BaseModel
 
 from app.config import settings
@@ -74,8 +75,8 @@ async def generate_response(question: str, age: int, story_mode: bool):
     system_prompt = build_system_prompt(age, story_mode)
 
     messages = [
-        {"role": "system", "content": system_prompt},
-        {"role": "user", "content": question},
+        ChatMessage(role="system", content=system_prompt),
+        ChatMessage(role="user", content=question),
     ]
 
     response = await llm.achat(messages)
