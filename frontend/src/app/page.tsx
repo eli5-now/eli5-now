@@ -1,23 +1,64 @@
 'use client';
 
+import { useState } from 'react';
 import { ChatInput } from '@/components/ChatInput';
 import { MessageList } from '@/components/MessageList';
+import { askEli, StreamEvent } from '@/lib/api';
 
-const mockMessages = [
-  {
-    id: '1',
-    role: 'user' as const,
-    content: 'Why is the sky blue?',
-  },
-  {
-    id: '2',
-    role: 'assistant' as const,
-    content:
-      "Great question! The sky is blue because of the way sunlight plays with the air. Sunlight looks white, but it's actually made of all the colors of the rainbow mixed together. When sunlight hits the tiny bits of air way up high, the blue part of the light bounces around the most — like a ball bouncing off walls! That's why when you look up, you see blue everywhere.",
-  },
-];
+interface Message {
+  id: string;
+  role: 'user' | 'assistant';
+  content: string;
+}
 
 export default function Home() {
+  const [messages, setMessages] = useState<Message[]>([]);
+  const [isLoading, setIsLoading] = useState(false);
+
+  const handleSubmit = async (question: string) => {
+    // Add user message
+    const userMessage: Message = {
+      id: Date.now().toString(),
+      role: 'user',
+      content: question,
+    };
+    setMessages((prev) => [...prev, userMessage]);
+    setIsLoading(true);
+
+    // Prepare assistant message placeholder
+    const assistantId = (Date.now() + 1).toString();
+    let assistantContent = '';
+
+    const handleEvent = (event: StreamEvent) => {
+      if (event.type === 'thinking') {
+        // Show thinking as temporary content
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== assistantId),
+          { id: assistantId, role: 'assistant', content: '🤔 ' + event.content },
+        ]);
+      } else if (event.type === 'text') {
+        assistantContent = event.content;
+        setMessages((prev) => [
+          ...prev.filter((m) => m.id !== assistantId),
+          { id: assistantId, role: 'assistant', content: assistantContent },
+        ]);
+      } else if (event.type === 'done') {
+        setIsLoading(false);
+      }
+    };
+
+    try {
+      await askEli({ question }, handleEvent);
+    } catch (error) {
+      console.error('Error asking Eli:', error);
+      setMessages((prev) => [
+        ...prev,
+        { id: assistantId, role: 'assistant', content: 'Sorry, something went wrong. Please try again!' },
+      ]);
+      setIsLoading(false);
+    }
+  };
+
   return (
     <div className="flex flex-col h-screen">
       {/* Header */}
@@ -35,7 +76,7 @@ export default function Home() {
         className="flex-1 overflow-y-auto p-4"
         style={{ backgroundColor: 'var(--background)' }}
       >
-        <MessageList messages={mockMessages} />
+        <MessageList messages={messages} />
       </main>
 
       {/* Input area */}
@@ -43,7 +84,7 @@ export default function Home() {
         className="p-4 border-t"
         style={{ borderColor: 'var(--surface-alt)', backgroundColor: 'var(--surface)' }}
       >
-        <ChatInput onSubmit={(msg) => console.log('User asked:', msg)} />
+        <ChatInput onSubmit={handleSubmit} disabled={isLoading} />
       </footer>
     </div>
   );
