@@ -4,9 +4,10 @@ import { useState } from 'react';
 
 interface ChatInputProps {
   onSubmit: (message: string) => void;
+  disabled?: boolean;
 }
 
-export function ChatInput({ onSubmit }: ChatInputProps) {
+export function ChatInput({ onSubmit, disabled }: ChatInputProps) {
   const [value, setValue] = useState('');
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -25,7 +26,8 @@ export function ChatInput({ onSubmit }: ChatInputProps) {
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder="Ask Eli anything..."
-        className="flex-1 rounded-full px-4 py-3 outline-none"
+        disabled={disabled}
+        className="flex-1 rounded-full px-4 py-3 outline-none disabled:opacity-50"
         style={{
           backgroundColor: 'var(--surface-alt)',
           color: 'var(--foreground)',
@@ -33,13 +35,14 @@ export function ChatInput({ onSubmit }: ChatInputProps) {
       />
       <button
         type="submit"
-        className="rounded-full px-6 py-3 font-medium transition-opacity hover:opacity-80"
+        disabled={disabled}
+        className="rounded-full px-6 py-3 font-medium transition-opacity hover:opacity-80 disabled:opacity-50"
         style={{
           backgroundColor: 'var(--primary)',
           color: 'white',
         }}
       >
-        Ask
+        {disabled ? '...' : 'Ask'}
       </button>
     </form>
   );
