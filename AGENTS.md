@@ -318,6 +318,17 @@ Examples:
 - **Budget**: $20-50/month for API costs
 - **Timeline**: 3-4 weeks for MVP
 
+## Collaboration Style
+
+### Backend (Python)
+**Guide, don't implement.** The developer wants to write Python backend code themselves. Your role:
+1. Explain what needs to be done
+2. Answer questions as they implement
+3. Review their final code
+
+### Frontend (TypeScript)
+You may implement frontend code directly, as the developer is less familiar with TypeScript.
+
 ## GitHub Repository
 
 - **Organization**: eli5-now
