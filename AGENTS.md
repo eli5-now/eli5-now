@@ -70,9 +70,50 @@ Each PR should be **visually testable**. The developer will test by opening the 
 
 ### 3. Testing Requirements
 
-- **Backend**: pytest with async support
-- **Frontend**: Jest + React Testing Library
-- **Every PR**: Include "How to Test" section in commit/PR description
+**Every feature branch must include appropriate tests.**
+
+#### Backend (pytest)
+- Test files in `backend/tests/`
+- Use `pytest-asyncio` for async tests
+- Run with: `cd backend && uv run pytest`
+
+```python
+# Example: tests/test_routes.py
+import pytest
+from httpx import AsyncClient
+from app.main import app
+
+@pytest.mark.asyncio
+async def test_health_endpoint():
+    async with AsyncClient(app=app, base_url="http://test") as client:
+        response = await client.get("/health")
+    assert response.status_code == 200
+    assert response.json()["status"] == "healthy"
+```
+
+#### Frontend (Jest + React Testing Library)
+- Test files in `frontend/__tests__/` or co-located with components
+- Run with: `cd frontend && npm test`
+
+```typescript
+// Example: __tests__/components/MessageBubble.test.tsx
+import { render, screen } from '@testing-library/react';
+import { MessageBubble } from '@/components/MessageBubble';
+
+test('renders user message on the right', () => {
+  render(<MessageBubble role="user" content="Hello" />);
+  expect(screen.getByText('Hello')).toBeInTheDocument();
+});
+```
+
+#### What to Test
+- **Routes**: Request/response, error handling
+- **Components**: Rendering, user interactions, props
+- **Utilities**: Edge cases, error conditions
+
+#### PR Requirements
+- Include "How to Test" section in PR description
+- All tests must pass before merge
 
 ### 4. Package Management
 
@@ -276,6 +317,17 @@ Examples:
 - **First user**: 4-year-old child - UI must be child-friendly and intuitive
 - **Budget**: $20-50/month for API costs
 - **Timeline**: 3-4 weeks for MVP
+
+## Collaboration Style
+
+### Backend (Python)
+**Guide, don't implement.** The developer wants to write Python backend code themselves. Your role:
+1. Explain what needs to be done
+2. Answer questions as they implement
+3. Review their final code
+
+### Frontend (TypeScript)
+You may implement frontend code directly, as the developer is less familiar with TypeScript.
 
 ## GitHub Repository
 
