@@ -18,6 +18,7 @@ class AskRequest(BaseModel):
     question: str
     age: int = 5
     story_mode: bool = False
+    history: list[dict] = []
 
 
 def build_system_prompt(age: int, story_mode: bool) -> str:
@@ -62,7 +63,7 @@ For a {age}-year-old:
 Keep your response concise and engaging."""
 
 
-async def generate_response(question: str, age: int, story_mode: bool):
+async def generate_response(question: str, history: list[dict], age: int, story_mode: bool):
     """Generate streaming response using LLM."""
     # Thinking event
     yield StreamEvent(
@@ -76,6 +77,7 @@ async def generate_response(question: str, age: int, story_mode: bool):
 
     messages = [
         ChatMessage(role="system", content=system_prompt),
+        *[ChatMessage(role=m["role"], content=m["content"]) for m in history],
         ChatMessage(role="user", content=question),
     ]
 
@@ -85,7 +87,7 @@ async def generate_response(question: str, age: int, story_mode: bool):
     # Text response
     yield StreamEvent(
         event_type="text",
-        content=response_text,
+        content=response_text or "",
     ).to_sse()
 
     # Done event
@@ -96,7 +98,7 @@ async def generate_response(question: str, age: int, story_mode: bool):
 async def ask(request: AskRequest):
     """Stream a response to the user's question."""
     return StreamingResponse(
-        generate_response(request.question, request.age, request.story_mode),
+        generate_response(request.question, request.history, request.age, request.story_mode),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",
