@@ -4,6 +4,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from llama_index.core.llms import ChatMessage
 from pydantic import BaseModel
+from tiktoken import encoding_for_model
 
 from app.config import settings
 from app.llm import get_llm
@@ -19,6 +20,43 @@ class AskRequest(BaseModel):
     age: int = 5
     story_mode: bool = False
     history: list[dict] = []
+
+
+def build_messages_with_token_limit(
+    system_prompt: str,
+    history: list[dict],
+    current_question: str,
+    max_total_tokens: int = 8000,
+    response_buffer: int = 1500,
+    model: str = "gpt-4o",
+) -> list[ChatMessage]:
+    """Build messages list, trimming history to fit token budget."""
+    encoder = encoding_for_model(model)
+
+    # Calculate fixed token costs
+    system_tokens = len(encoder.encode(system_prompt))
+    question_tokens = len(encoder.encode(current_question))
+
+    # History budget = total - system - question - response buffer
+    history_budget = max_total_tokens - system_tokens - question_tokens - response_buffer
+
+    # Trim history (most recent first)
+    trimmed_history = []
+    history_tokens = 0
+    for msg in reversed(history):
+        msg_tokens = len(encoder.encode(msg["content"]))
+        if history_tokens + msg_tokens > history_budget:
+            break
+        trimmed_history.append(msg)
+        history_tokens += msg_tokens
+
+    trimmed_history = list(reversed(trimmed_history))
+
+    return [
+        ChatMessage(role="system", content=system_prompt),
+        *[ChatMessage(role=m["role"], content=m["content"]) for m in trimmed_history],
+        ChatMessage(role="user", content=current_question),
+    ]
 
 
 def build_system_prompt(age: int, story_mode: bool) -> str:
@@ -75,11 +113,14 @@ async def generate_response(question: str, history: list[dict], age: int, story_
     llm = get_llm(settings)
     system_prompt = build_system_prompt(age, story_mode)
 
-    messages = [
-        ChatMessage(role="system", content=system_prompt),
-        *[ChatMessage(role=m["role"], content=m["content"]) for m in history],
-        ChatMessage(role="user", content=question),
-    ]
+    messages = build_messages_with_token_limit(
+        system_prompt=system_prompt,
+        history=history,
+        current_question=question,
+        max_total_tokens=settings.max_tokens,
+        response_buffer=settings.response_token_buffer,
+        model=settings.llm_model,
+    )
 
     response = await llm.achat(messages)
     response_text = response.message.content

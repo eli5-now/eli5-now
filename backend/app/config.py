@@ -1,5 +1,6 @@
 """Application configuration."""
 
+from pydantic import field_validator
 from pydantic_settings import BaseSettings, SettingsConfigDict
 
 
@@ -15,13 +16,26 @@ class Settings(BaseSettings):
     # LLM Provider: "openai" or "anthropic"
     llm_provider: str = "openai"
 
-    # OpenAI settings
-    openai_api_key: str = ""
-    openai_model: str = "gpt-4o"
+    # LLM settings
+    llm_api_key: str = ""
+    llm_model: str = "gpt-4o"
 
-    # Anthropic settings
-    anthropic_api_key: str = ""
-    anthropic_model: str = "claude-sonnet-4-20250514"
+    # Max tokens for response (adjust as needed)
+    max_tokens: int = 2048
+
+    # Space resereved for response generation
+    response_token_buffer: int = 1500
+
+    @field_validator("response_token_buffer")
+    @classmethod
+    def validate_response_token_buffer(cls, v: int, info) -> int:
+        """Ensure response_token_buffer is less than max_tokens."""
+        max_tokens = info.data.get("max_tokens")
+        if max_tokens is not None and v >= max_tokens:
+            raise ValueError(
+                f"response_token_buffer ({v}) must be less than max_tokens ({max_tokens})"
+            )
+        return v
 
 
 # Singleton instance

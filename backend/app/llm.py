@@ -11,12 +11,12 @@ def get_llm(settings: Settings) -> LLM:
     """Create an LLM instance based on configuration."""
     if settings.llm_provider == "anthropic":
         return Anthropic(
-            model=settings.anthropic_model,
-            api_key=settings.anthropic_api_key,
+            model=settings.llm_model,
+            api_key=settings.llm_api_key,
         )
 
     # Default to OpenAI
     return OpenAI(
-        model=settings.openai_model,
-        api_key=settings.openai_api_key,
+        model=settings.llm_model,
+        api_key=settings.llm_api_key,
     )
