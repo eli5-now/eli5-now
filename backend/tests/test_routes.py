@@ -248,3 +248,45 @@ def test_build_messages_handles_odd_leading_user():
     contents = [m.content for m in messages]
     assert "Unanswered question" in contents
     assert "New question" in contents
+
+
+def test_get_tokenizer_falls_back_for_anthropic():
+    """Test that tokenizer falls back gracefully for non-OpenAI models."""
+    from app.routes.ask import get_tokenizer
+
+    # OpenAI model should work directly
+    openai_encoder = get_tokenizer("gpt-4o")
+    assert openai_encoder is not None
+
+    # Anthropic model should fall back to cl100k_base without crashing
+    anthropic_encoder = get_tokenizer("claude-sonnet-4-20250514")
+    assert anthropic_encoder is not None
+
+    # Both should be able to encode text
+    text = "Hello, world!"
+    assert len(openai_encoder.encode(text)) > 0
+    assert len(anthropic_encoder.encode(text)) > 0
+
+
+def test_build_messages_works_with_anthropic_model():
+    """Test that build_messages_with_token_limit works with Anthropic models."""
+    from app.routes.ask import build_messages_with_token_limit
+
+    history = [
+        HistoryMessage(role="user", content="Hello"),
+        HistoryMessage(role="assistant", content="Hi there!"),
+    ]
+
+    # Should not crash with Anthropic model
+    messages = build_messages_with_token_limit(
+        system_prompt="You are Eli.",
+        history=history,
+        current_question="How are you?",
+        max_total_tokens=8000,
+        response_buffer=1500,
+        model="claude-sonnet-4-20250514",
+    )
+
+    assert len(messages) == 4
+    assert messages[0].role == "system"
+    assert messages[-1].content == "How are you?"

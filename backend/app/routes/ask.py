@@ -6,7 +6,7 @@ from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from llama_index.core.llms import ChatMessage
 from pydantic import BaseModel, Field
-from tiktoken import encoding_for_model
+from tiktoken import encoding_for_model, get_encoding
 
 from app.config import settings
 from app.llm import get_llm
@@ -31,6 +31,16 @@ class AskRequest(BaseModel):
     history: list[HistoryMessage] = Field(default_factory=list)
 
 
+def get_tokenizer(model: str):
+    """Get tokenizer for model, falling back to cl100k_base for unsupported models."""
+    try:
+        return encoding_for_model(model)
+    except KeyError:
+        # Anthropic and other non-OpenAI models aren't supported by tiktoken.
+        # Fall back to cl100k_base (GPT-4's encoding) as a reasonable approximation.
+        return get_encoding("cl100k_base")
+
+
 def build_messages_with_token_limit(
     system_prompt: str,
     history: list[HistoryMessage],
@@ -40,14 +50,15 @@ def build_messages_with_token_limit(
     model: str,
 ) -> list[ChatMessage]:
     """Build messages list, trimming history to fit token budget."""
-    encoder = encoding_for_model(model)
+    encoder = get_tokenizer(model)
 
     # Calculate fixed token costs
     system_tokens = len(encoder.encode(system_prompt))
     question_tokens = len(encoder.encode(current_question))
 
     # History budget = total - system - question - response buffer
-    history_budget = max_total_tokens - system_tokens - question_tokens - response_buffer
+    # Clamp to 0 if fixed costs exceed the limit (history will be omitted)
+    history_budget = max(0, max_total_tokens - system_tokens - question_tokens - response_buffer)
 
     # Trim history in pairs (user + assistant) to preserve conversation structure
     # Process from most recent, keeping pairs together
