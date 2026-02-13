@@ -23,7 +23,7 @@ class Settings(BaseSettings):
     # Max tokens for response (adjust as needed)
     max_tokens: int = 2048
 
-    # Space resereved for response generation
+    # Space reserved for response generation
     response_token_buffer: int = 1500
 
     @field_validator("response_token_buffer")
