@@ -1,9 +1,12 @@
 """Ask endpoint for streaming Q&A."""
 
+from typing import Literal
+
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from llama_index.core.llms import ChatMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
+from tiktoken import encoding_for_model, get_encoding
 
 from app.config import settings
 from app.llm import get_llm
@@ -12,12 +15,88 @@ from app.streaming import StreamEvent
 router = APIRouter()
 
 
+class HistoryMessage(BaseModel):
+    """A message in conversation history."""
+
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class AskRequest(BaseModel):
     """Request body for /ask endpoint."""
 
     question: str
     age: int = 5
     story_mode: bool = False
+    history: list[HistoryMessage] = Field(default_factory=list)
+
+
+def get_tokenizer(model: str):
+    """Get tokenizer for model, falling back to cl100k_base for unsupported models."""
+    try:
+        return encoding_for_model(model)
+    except KeyError:
+        # Anthropic and other non-OpenAI models aren't supported by tiktoken.
+        # Fall back to cl100k_base (GPT-4's encoding) as a reasonable approximation.
+        return get_encoding("cl100k_base")
+
+
+def build_messages_with_token_limit(
+    system_prompt: str,
+    history: list[HistoryMessage],
+    current_question: str,
+    max_total_tokens: int,
+    response_buffer: int,
+    model: str,
+) -> list[ChatMessage]:
+    """Build messages list, trimming history to fit token budget."""
+    encoder = get_tokenizer(model)
+
+    # Calculate fixed token costs
+    system_tokens = len(encoder.encode(system_prompt))
+    question_tokens = len(encoder.encode(current_question))
+
+    # History budget = total - system - question - response buffer
+    # Clamp to 0 if fixed costs exceed the limit (history will be omitted)
+    history_budget = max(0, max_total_tokens - system_tokens - question_tokens - response_buffer)
+
+    # Trim history in pairs (user + assistant) to preserve conversation structure
+    # Process from most recent, keeping pairs together
+    pairs: list[tuple[HistoryMessage, HistoryMessage | None]] = []
+    history_tokens = 0
+    i = len(history) - 1
+
+    while i >= 1:
+        assistant_msg = history[i]
+        user_msg = history[i - 1]
+        pair_tokens = len(encoder.encode(user_msg.content)) + len(
+            encoder.encode(assistant_msg.content)
+        )
+        if history_tokens + pair_tokens > history_budget:
+            break
+        pairs.append((user_msg, assistant_msg))
+        history_tokens += pair_tokens
+        i -= 2
+
+    # Handle odd leading user message if it fits
+    if i == 0:
+        user_msg = history[0]
+        msg_tokens = len(encoder.encode(user_msg.content))
+        if history_tokens + msg_tokens <= history_budget:
+            pairs.append((user_msg, None))
+
+    # Flatten pairs back to message list (reversed to restore chronological order)
+    trimmed_history = []
+    for user_msg, assistant_msg in reversed(pairs):
+        trimmed_history.append(user_msg)
+        if assistant_msg:
+            trimmed_history.append(assistant_msg)
+
+    return [
+        ChatMessage(role="system", content=system_prompt),
+        *[ChatMessage(role=m.role, content=m.content) for m in trimmed_history],
+        ChatMessage(role="user", content=current_question),
+    ]
 
 
 def build_system_prompt(age: int, story_mode: bool) -> str:
@@ -62,7 +141,9 @@ For a {age}-year-old:
 Keep your response concise and engaging."""
 
 
-async def generate_response(question: str, age: int, story_mode: bool):
+async def generate_response(
+    question: str, history: list[HistoryMessage], age: int, story_mode: bool
+):
     """Generate streaming response using LLM."""
     # Thinking event
     yield StreamEvent(
@@ -74,10 +155,14 @@ async def generate_response(question: str, age: int, story_mode: bool):
     llm = get_llm(settings)
     system_prompt = build_system_prompt(age, story_mode)
 
-    messages = [
-        ChatMessage(role="system", content=system_prompt),
-        ChatMessage(role="user", content=question),
-    ]
+    messages = build_messages_with_token_limit(
+        system_prompt=system_prompt,
+        history=history,
+        current_question=question,
+        max_total_tokens=settings.max_tokens,
+        response_buffer=settings.response_token_buffer,
+        model=settings.llm_model,
+    )
 
     response = await llm.achat(messages)
     response_text = response.message.content
@@ -85,7 +170,7 @@ async def generate_response(question: str, age: int, story_mode: bool):
     # Text response
     yield StreamEvent(
         event_type="text",
-        content=response_text,
+        content=response_text or "",
     ).to_sse()
 
     # Done event
@@ -96,7 +181,7 @@ async def generate_response(question: str, age: int, story_mode: bool):
 async def ask(request: AskRequest):
     """Stream a response to the user's question."""
     return StreamingResponse(
-        generate_response(request.question, request.age, request.story_mode),
+        generate_response(request.question, request.history, request.age, request.story_mode),
         media_type="text/event-stream",
         headers={
             "Cache-Control": "no-cache",

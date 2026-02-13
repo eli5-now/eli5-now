@@ -16,6 +16,9 @@ export default function Home() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (question: string) => {
+    // Build history from current messages (before adding new question)
+    const history = messages.map(({ role, content }) => ({ role, content }));
+
     // Add user message
     const userMessage: Message = {
       id: Date.now().toString(),
@@ -48,7 +51,7 @@ export default function Home() {
     };
 
     try {
-      await askEli({ question }, handleEvent);
+      await askEli({ question, history }, handleEvent);
     } catch (error) {
       console.error('Error asking Eli:', error);
       setMessages((prev) => [

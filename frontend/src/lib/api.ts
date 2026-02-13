@@ -6,10 +6,16 @@ export interface StreamEvent {
   metadata?: Record<string, unknown>;
 }
 
+export interface Message {
+  role: 'user' | 'assistant';
+  content: string;
+}
+
 export interface AskRequest {
   question: string;
   age?: number;
   story_mode?: boolean;
+  history?: Message[];
 }
 
 export async function askEli(

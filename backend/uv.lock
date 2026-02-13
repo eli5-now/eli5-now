@@ -663,6 +663,7 @@ llm = [
     { name = "llama-index" },
     { name = "llama-index-llms-anthropic" },
     { name = "llama-index-llms-openai" },
+    { name = "tiktoken" },
 ]
 
 [package.metadata]
@@ -696,6 +697,7 @@ llm = [
     { name = "llama-index", specifier = ">=0.12.0" },
     { name = "llama-index-llms-anthropic", specifier = ">=0.6.0" },
     { name = "llama-index-llms-openai", specifier = ">=0.3.0" },
+    { name = "tiktoken", specifier = ">=0.12.0" },
 ]
 
 [[package]]
