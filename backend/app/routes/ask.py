@@ -1,5 +1,7 @@
 """Ask endpoint for streaming Q&A."""
 
+from typing import Literal
+
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from llama_index.core.llms import ChatMessage
@@ -13,18 +15,25 @@ from app.streaming import StreamEvent
 router = APIRouter()
 
 
+class HistoryMessage(BaseModel):
+    """A message in conversation history."""
+
+    role: Literal["user", "assistant"]
+    content: str
+
+
 class AskRequest(BaseModel):
     """Request body for /ask endpoint."""
 
     question: str
     age: int = 5
     story_mode: bool = False
-    history: list[dict] = Field(default_factory=list)
+    history: list[HistoryMessage] = Field(default_factory=list)
 
 
 def build_messages_with_token_limit(
     system_prompt: str,
-    history: list[dict],
+    history: list[HistoryMessage],
     current_question: str,
     max_total_tokens: int = 8000,
     response_buffer: int = 1500,
@@ -44,7 +53,7 @@ def build_messages_with_token_limit(
     trimmed_history = []
     history_tokens = 0
     for msg in reversed(history):
-        msg_tokens = len(encoder.encode(msg["content"]))
+        msg_tokens = len(encoder.encode(msg.content))
         if history_tokens + msg_tokens > history_budget:
             break
         trimmed_history.append(msg)
@@ -54,7 +63,7 @@ def build_messages_with_token_limit(
 
     return [
         ChatMessage(role="system", content=system_prompt),
-        *[ChatMessage(role=m["role"], content=m["content"]) for m in trimmed_history],
+        *[ChatMessage(role=m.role, content=m.content) for m in trimmed_history],
         ChatMessage(role="user", content=current_question),
     ]
 
@@ -101,7 +110,7 @@ For a {age}-year-old:
 Keep your response concise and engaging."""
 
 
-async def generate_response(question: str, history: list[dict], age: int, story_mode: bool):
+async def generate_response(question: str, history: list[HistoryMessage], age: int, story_mode: bool):
     """Generate streaming response using LLM."""
     # Thinking event
     yield StreamEvent(
