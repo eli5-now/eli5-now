@@ -38,7 +38,7 @@ async def generate_response(
     # Text response
     yield StreamEvent(
         event_type="text",
-        content=response.message.content or "",
+        content=response.response.content or "",
     ).to_sse()
 
     # Done event

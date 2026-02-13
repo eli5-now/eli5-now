@@ -15,17 +15,12 @@ class HistoryMessage(BaseModel):
 
 def format_history_for_agent(history: list[HistoryMessage]) -> str:
     """Format history messages for Agent input."""
-    return (
-        reduce(
-            lambda acc, msg: acc
-            + (
-                f"Child asked: {msg.content}\n"
-                if msg.role == "user"
-                else f"You answered: {msg.content}\n"
-            ),
-            history,
-            "Previous conversation:\n",
-        )
-        if history
-        else ""
-    )
+
+    def reducer(acc: str, msg: HistoryMessage) -> str:
+        """Format each message based on role."""
+        if msg.role == "user":
+            return acc + f"Child asked: {msg.content}\n"
+        else:
+            return acc + f"You answered: {msg.content}\n"
+
+    return reduce(reducer, history, "Previous conversation:\n") if history else ""
