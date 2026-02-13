@@ -3,7 +3,7 @@
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
 from llama_index.core.llms import ChatMessage
-from pydantic import BaseModel
+from pydantic import BaseModel, Field
 from tiktoken import encoding_for_model
 
 from app.config import settings
@@ -19,7 +19,7 @@ class AskRequest(BaseModel):
     question: str
     age: int = 5
     story_mode: bool = False
-    history: list[dict] = []
+    history: list[dict] = Field(default_factory=list)
 
 
 def build_messages_with_token_limit(
