@@ -103,6 +103,9 @@ def test_build_messages_with_token_limit_no_history():
         system_prompt="You are Eli.",
         history=[],
         current_question="Why is the sky blue?",
+        max_total_tokens=8000,
+        response_buffer=1500,
+        model="gpt-4o",
     )
 
     assert len(messages) == 2  # system + question
@@ -125,6 +128,9 @@ def test_build_messages_with_token_limit_with_history():
         system_prompt="You are Eli.",
         history=history,
         current_question="How are you?",
+        max_total_tokens=8000,
+        response_buffer=1500,
+        model="gpt-4o",
     )
 
     assert len(messages) == 4  # system + 2 history + question
@@ -141,11 +147,11 @@ def test_build_messages_with_token_limit_trims_old_messages():
     """Test that old messages are trimmed when exceeding token limit."""
     from app.routes.ask import build_messages_with_token_limit
 
-    # Create history with many messages
-    history = [
-        HistoryMessage(role="user", content=f"Message {i} " * 50)  # ~100 tokens each
-        for i in range(20)
-    ]
+    # Create history with many paired messages (user + assistant)
+    history = []
+    for i in range(10):
+        history.append(HistoryMessage(role="user", content=f"Message {i} " * 50))
+        history.append(HistoryMessage(role="assistant", content=f"Response {i} " * 50))
 
     messages = build_messages_with_token_limit(
         system_prompt="Short prompt.",
@@ -153,6 +159,7 @@ def test_build_messages_with_token_limit_trims_old_messages():
         current_question="Final question?",
         max_total_tokens=500,  # Very limited budget
         response_buffer=100,
+        model="gpt-4o",
     )
 
     # Should have trimmed most history
@@ -179,10 +186,65 @@ def test_build_messages_preserves_recent_messages():
         current_question="New question",
         max_total_tokens=300,
         response_buffer=50,
+        model="gpt-4o",
     )
 
     # Recent messages should be present
     contents = [m.content for m in messages]
     assert "Recent message" in contents
     assert "Recent response" in contents
+    assert "New question" in contents
+
+
+def test_build_messages_trims_in_pairs():
+    """Test that messages are trimmed in user+assistant pairs to preserve context."""
+    from app.routes.ask import build_messages_with_token_limit
+
+    history = [
+        HistoryMessage(role="user", content="Question 1"),
+        HistoryMessage(role="assistant", content="Answer 1 " * 50),  # ~100 tokens
+        HistoryMessage(role="user", content="Question 2"),
+        HistoryMessage(role="assistant", content="Answer 2"),
+    ]
+
+    messages = build_messages_with_token_limit(
+        system_prompt="Eli.",
+        history=history,
+        current_question="Question 3",
+        max_total_tokens=200,
+        response_buffer=50,
+        model="gpt-4o",
+    )
+
+    contents = [m.content for m in messages]
+
+    # Should have kept the recent pair together
+    assert "Question 2" in contents
+    assert "Answer 2" in contents
+
+    # Should NOT have an orphaned assistant message (Answer 1 without Question 1)
+    if "Answer 1 " * 50 in " ".join(contents):
+        assert "Question 1" in contents, "Assistant message kept without its user message"
+
+
+def test_build_messages_handles_odd_leading_user():
+    """Test that a leading user message without assistant response is handled."""
+    from app.routes.ask import build_messages_with_token_limit
+
+    # Odd number of messages - leading user message has no response yet
+    history = [
+        HistoryMessage(role="user", content="Unanswered question"),
+    ]
+
+    messages = build_messages_with_token_limit(
+        system_prompt="Eli.",
+        history=history,
+        current_question="New question",
+        max_total_tokens=500,
+        response_buffer=50,
+        model="gpt-4o",
+    )
+
+    contents = [m.content for m in messages]
+    assert "Unanswered question" in contents
     assert "New question" in contents

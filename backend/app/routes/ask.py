@@ -35,9 +35,9 @@ def build_messages_with_token_limit(
     system_prompt: str,
     history: list[HistoryMessage],
     current_question: str,
-    max_total_tokens: int = 8000,
-    response_buffer: int = 1500,
-    model: str = "gpt-4o",
+    max_total_tokens: int,
+    response_buffer: int,
+    model: str,
 ) -> list[ChatMessage]:
     """Build messages list, trimming history to fit token budget."""
     encoder = encoding_for_model(model)
@@ -49,17 +49,37 @@ def build_messages_with_token_limit(
     # History budget = total - system - question - response buffer
     history_budget = max_total_tokens - system_tokens - question_tokens - response_buffer
 
-    # Trim history (most recent first)
-    trimmed_history = []
+    # Trim history in pairs (user + assistant) to preserve conversation structure
+    # Process from most recent, keeping pairs together
+    pairs: list[tuple[HistoryMessage, HistoryMessage | None]] = []
     history_tokens = 0
-    for msg in reversed(history):
-        msg_tokens = len(encoder.encode(msg.content))
-        if history_tokens + msg_tokens > history_budget:
-            break
-        trimmed_history.append(msg)
-        history_tokens += msg_tokens
+    i = len(history) - 1
 
-    trimmed_history = list(reversed(trimmed_history))
+    while i >= 1:
+        assistant_msg = history[i]
+        user_msg = history[i - 1]
+        pair_tokens = len(encoder.encode(user_msg.content)) + len(
+            encoder.encode(assistant_msg.content)
+        )
+        if history_tokens + pair_tokens > history_budget:
+            break
+        pairs.append((user_msg, assistant_msg))
+        history_tokens += pair_tokens
+        i -= 2
+
+    # Handle odd leading user message if it fits
+    if i == 0:
+        user_msg = history[0]
+        msg_tokens = len(encoder.encode(user_msg.content))
+        if history_tokens + msg_tokens <= history_budget:
+            pairs.append((user_msg, None))
+
+    # Flatten pairs back to message list (reversed to restore chronological order)
+    trimmed_history = []
+    for user_msg, assistant_msg in reversed(pairs):
+        trimmed_history.append(user_msg)
+        if assistant_msg:
+            trimmed_history.append(assistant_msg)
 
     return [
         ChatMessage(role="system", content=system_prompt),
@@ -110,7 +130,9 @@ For a {age}-year-old:
 Keep your response concise and engaging."""
 
 
-async def generate_response(question: str, history: list[HistoryMessage], age: int, story_mode: bool):
+async def generate_response(
+    question: str, history: list[HistoryMessage], age: int, story_mode: bool
+):
     """Generate streaming response using LLM."""
     # Thinking event
     yield StreamEvent(
