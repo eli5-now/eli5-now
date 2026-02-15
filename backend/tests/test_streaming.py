@@ -9,10 +9,10 @@ def test_stream_event_to_sse_basic():
     """Test StreamEvent formats correctly as SSE."""
     event = StreamEvent(event_type="text", content="Hello world")
     sse = event.to_sse()
-    
+
     assert sse.startswith("data: ")
     assert sse.endswith("\n\n")
-    
+
     # Parse the JSON data
     data = json.loads(sse[6:-2])
     assert data["type"] == "text"
@@ -28,7 +28,7 @@ def test_stream_event_to_sse_with_metadata():
     )
     sse = event.to_sse()
     data = json.loads(sse[6:-2])
-    
+
     assert data["type"] == "image"
     assert data["metadata"]["alt"] == "A blue sky"
 
@@ -38,6 +38,6 @@ def test_stream_event_done():
     event = StreamEvent(event_type="done")
     sse = event.to_sse()
     data = json.loads(sse[6:-2])
-    
+
     assert data["type"] == "done"
     assert data["content"] == ""
