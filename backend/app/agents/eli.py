@@ -1,6 +1,7 @@
 """ELI Agent."""
 
 from llama_index.core.agent.workflow import ReActAgent
+from llama_index.core.prompts import PromptTemplate
 
 from app.config import Settings
 from app.llm import get_llm
@@ -50,9 +51,18 @@ Keep your response concise and engaging."""
 
 def create_eli_agent(settings: Settings, age: int, story_mode: bool) -> ReActAgent:
     """Create the agent that powers ELI."""
-    return ReActAgent(
+    agent = ReActAgent(
         tools=[],  # No external tools for now, but can be added here
         llm=get_llm(settings),
-        system_prompt=build_system_prompt(age, story_mode),
         verbose=False,
     )
+
+    current_prompts = agent.get_prompts()
+    eli_personality = build_system_prompt(age, story_mode)
+
+    # Update system prompt by wrapping string in PromptTemplate
+    if "react_header" in current_prompts:
+        original = current_prompts["react_header"].get_template()
+        agent.update_prompts({"react_header": PromptTemplate(f"{eli_personality}\n\n{original}")})
+
+    return agent
