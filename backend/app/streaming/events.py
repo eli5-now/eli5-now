@@ -1,7 +1,7 @@
 """SSE event definitions."""
 
 from dataclasses import dataclass, field
-from typing import Literal
+from typing import Any, Literal
 
 
 @dataclass
@@ -16,7 +16,7 @@ class StreamEvent:
         """Format as SSE message."""
         import json
 
-        data = {
+        data: dict[str, Any] = {
             "type": self.event_type,
             "content": self.content,
         }
