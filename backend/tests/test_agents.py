@@ -1,6 +1,8 @@
 """Tests for agent creation and system prompts."""
 
-from app.agents.eli import build_system_prompt
+from unittest.mock import MagicMock
+
+from app.agents.eli import build_system_prompt, create_eli_agent
 
 
 def test_build_system_prompt_young_child():
@@ -62,3 +64,19 @@ def test_build_system_prompt_contains_eli_personality():
     assert "Eli" in prompt
     assert "warm" in prompt.lower()
     assert "encouraging" in prompt
+
+
+def test_create_eli_agent_prepends_personality_to_react_prompt():
+    """Test that create_eli_agent injects Eli's personality into the ReAct header prompt."""
+    settings = MagicMock()
+    settings.llm_provider = "openai"
+    settings.llm_api_key = "test-key"
+    settings.llm_model = "gpt-4o"
+
+    agent = create_eli_agent(settings, age=5, story_mode=False)
+    prompts = agent.get_prompts()
+
+    assert "react_header" in prompts
+    react_header = prompts["react_header"].get_template()
+    assert "Eli" in react_header
+    assert "5-year-old" in react_header
