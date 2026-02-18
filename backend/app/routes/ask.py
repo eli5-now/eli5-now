@@ -2,11 +2,14 @@
 
 from fastapi import APIRouter
 from fastapi.responses import StreamingResponse
+from llama_index.core.llms import ChatMessage
+from llama_index.core.memory import ChatMemoryBuffer
+from llama_index.core.workflow import Context
 from pydantic import BaseModel, Field
 
 from app.agents.eli import create_eli_agent
 from app.config import settings
-from app.messages import HistoryMessage, format_history_for_agent
+from app.messages import HistoryMessage
 from app.streaming import StreamEvent
 
 router = APIRouter()
@@ -33,13 +36,18 @@ async def generate_response(
 
     # Create agent and generate response
     agent = create_eli_agent(settings, age, story_mode)
-    response = await agent.run(format_history_for_agent(history) + question)
+
+    memory = ChatMemoryBuffer.from_defaults(
+        token_limit=settings.max_tokens - settings.response_token_buffer
+    )
+
+    for msg in history:
+        memory.put(ChatMessage(role=msg.role, content=msg.content))
+
+    response = await agent.run(question, ctx=Context(agent), memory=memory)
 
     # Text response
-    yield StreamEvent(
-        event_type="text",
-        content=response.response.content or "",
-    ).to_sse()
+    yield StreamEvent(event_type="text", content=str(response) or "").to_sse()
 
     # Done event
     yield StreamEvent(event_type="done").to_sse()
