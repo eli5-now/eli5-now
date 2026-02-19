@@ -5,20 +5,27 @@ import { ChatInput } from '@/components/ChatInput';
 import { MessageList } from '@/components/MessageList';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { useSettings } from '@/hooks/useSettings';
+import { useTTS } from '@/hooks/useTTS';
 import { askEli, StreamEvent } from '@/lib/api';
 
 interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  isThinking?: boolean;
 }
 
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { voiceProvider, updateVoiceProvider } = useSettings();
+  const { voiceProvider, updateVoiceProvider, ttsEnabled, updateTTSEnabled } = useSettings();
+  const tts = useTTS(voiceProvider);
 
   const handleSubmit = async (question: string) => {
+    // Stop any in-progress speech and unlock audio in Safari — must run
+    // synchronously within a user gesture.
+    if (ttsEnabled) { tts.stop(); tts.unlock(); }
+
     // Build history from current messages (before adding new question)
     const history = messages.map(({ role, content }) => ({ role, content }));
 
@@ -39,16 +46,17 @@ export default function Home() {
       if (event.type === 'thinking') {
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== assistantId),
-          { id: assistantId, role: 'assistant', content: '🤔 ' + event.content },
+          { id: assistantId, role: 'assistant', content: '🤔 ' + event.content, isThinking: true },
         ]);
       } else if (event.type === 'text') {
         assistantContent = event.content;
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== assistantId),
-          { id: assistantId, role: 'assistant', content: assistantContent },
+          { id: assistantId, role: 'assistant', content: assistantContent, isThinking: false },
         ]);
       } else if (event.type === 'done') {
         setIsLoading(false);
+        if (ttsEnabled && assistantContent) tts.speak(assistantContent);
       }
     };
 
@@ -78,6 +86,8 @@ export default function Home() {
         <SettingsPanel
           voiceProvider={voiceProvider}
           onVoiceProviderChange={updateVoiceProvider}
+          ttsEnabled={ttsEnabled}
+          onTTSEnabledChange={updateTTSEnabled}
         />
       </header>
 
@@ -86,7 +96,13 @@ export default function Home() {
         className="flex-1 overflow-y-auto p-4"
         style={{ backgroundColor: 'var(--background)' }}
       >
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages}
+          ttsEnabled={ttsEnabled}
+          isSpeaking={tts.isSpeaking}
+          onSpeak={tts.speak}
+          onStop={tts.stop}
+        />
       </main>
 
       {/* Input area */}

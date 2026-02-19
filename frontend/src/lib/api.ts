@@ -9,6 +9,16 @@ export async function transcribeAudio(blob: Blob): Promise<string> {
   return data.transcript;
 }
 
+export async function synthesizeSpeech(text: string): Promise<Blob> {
+  const res = await fetch(`${API_URL}/tts`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ text }),
+  });
+  if (!res.ok) throw new Error(`TTS error: ${res.status}`);
+  return res.blob();
+}
+
 export interface StreamEvent {
   type: 'thinking' | 'text' | 'image' | 'done';
   content: string;

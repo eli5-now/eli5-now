@@ -1,5 +1,5 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
-import { getStoredProvider, setStoredProvider } from '../useSettings';
+import { getStoredProvider, setStoredProvider, getStoredTTSEnabled, setStoredTTSEnabled } from '../useSettings';
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -69,5 +69,63 @@ describe('setStoredProvider', () => {
     }));
     // Should not throw:
     expect(() => setStoredProvider('whisper')).not.toThrow();
+  });
+});
+
+// ---------------------------------------------------------------------------
+// getStoredTTSEnabled
+// ---------------------------------------------------------------------------
+
+describe('getStoredTTSEnabled', () => {
+  beforeEach(() => {
+    vi.stubGlobal('localStorage', mockLocalStorage());
+  });
+
+  it('returns false when nothing is stored', () => {
+    expect(getStoredTTSEnabled()).toBe(false);
+  });
+
+  it('returns true when "true" is stored', () => {
+    localStorage.setItem('ttsEnabled', 'true');
+    expect(getStoredTTSEnabled()).toBe(true);
+  });
+
+  it('returns false for any value other than "true" (corrupted storage)', () => {
+    localStorage.setItem('ttsEnabled', 'yes');
+    expect(getStoredTTSEnabled()).toBe(false);
+  });
+
+  it('returns false when localStorage.getItem throws (e.g. private browsing)', () => {
+    vi.stubGlobal('localStorage', mockLocalStorage({
+      getItem: vi.fn(() => { throw new DOMException('SecurityError'); }),
+    }));
+    expect(getStoredTTSEnabled()).toBe(false);
+  });
+});
+
+// ---------------------------------------------------------------------------
+// setStoredTTSEnabled
+// ---------------------------------------------------------------------------
+
+describe('setStoredTTSEnabled', () => {
+  it('persists true to localStorage', () => {
+    const storage = mockLocalStorage();
+    vi.stubGlobal('localStorage', storage);
+    setStoredTTSEnabled(true);
+    expect(storage.setItem).toHaveBeenCalledWith('ttsEnabled', 'true');
+  });
+
+  it('persists false to localStorage', () => {
+    const storage = mockLocalStorage();
+    vi.stubGlobal('localStorage', storage);
+    setStoredTTSEnabled(false);
+    expect(storage.setItem).toHaveBeenCalledWith('ttsEnabled', 'false');
+  });
+
+  it('does not throw when localStorage.setItem throws (e.g. private browsing)', () => {
+    vi.stubGlobal('localStorage', mockLocalStorage({
+      setItem: vi.fn(() => { throw new DOMException('SecurityError'); }),
+    }));
+    expect(() => setStoredTTSEnabled(true)).not.toThrow();
   });
 });

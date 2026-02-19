@@ -1,9 +1,14 @@
 interface MessageBubbleProps {
   role: 'user' | 'assistant';
   content: string;
+  isThinking?: boolean;
+  ttsEnabled?: boolean;
+  isSpeaking?: boolean;
+  onSpeak?: (text: string) => void;
+  onStop?: () => void;
 }
 
-export function MessageBubble({ role, content }: MessageBubbleProps) {
+export function MessageBubble({ role, content, isThinking, ttsEnabled, isSpeaking, onSpeak, onStop }: MessageBubbleProps) {
   const isUser = role === 'user';
 
   return (
@@ -19,6 +24,16 @@ export function MessageBubble({ role, content }: MessageBubbleProps) {
         }}
       >
         {content}
+        {!isUser && !isThinking && ttsEnabled && (
+          <button
+            onClick={isSpeaking ? onStop : () => onSpeak?.(content)}
+            aria-label={isSpeaking ? 'Stop speaking' : 'Read aloud'}
+            className="ml-2 text-base opacity-60 hover:opacity-100 transition-opacity"
+            style={{ verticalAlign: 'middle' }}
+          >
+            {isSpeaking ? '⏸' : '🔊'}
+          </button>
+        )}
       </div>
     </div>
   );

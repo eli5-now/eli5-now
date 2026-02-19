@@ -6,9 +6,16 @@ import { VoiceProvider } from '@/hooks/useVoiceInput';
 interface SettingsPanelProps {
   voiceProvider: VoiceProvider;
   onVoiceProviderChange: (p: VoiceProvider) => void;
+  ttsEnabled: boolean;
+  onTTSEnabledChange: (enabled: boolean) => void;
 }
 
-export function SettingsPanel({ voiceProvider, onVoiceProviderChange }: SettingsPanelProps) {
+export function SettingsPanel({
+  voiceProvider,
+  onVoiceProviderChange,
+  ttsEnabled,
+  onTTSEnabledChange,
+}: SettingsPanelProps) {
   const [open, setOpen] = useState(false);
 
   return (
@@ -24,11 +31,11 @@ export function SettingsPanel({ voiceProvider, onVoiceProviderChange }: Settings
 
       {open && (
         <div
-          className="absolute right-0 mt-1 w-52 rounded-xl shadow-lg p-3 z-10"
+          className="absolute right-0 mt-1 w-56 rounded-xl shadow-lg p-3 z-10"
           style={{ backgroundColor: 'var(--surface)', border: '1px solid var(--surface-alt)' }}
         >
           <p className="text-xs font-semibold mb-2" style={{ color: 'var(--foreground-muted)' }}>
-            Voice input
+            Voice mode
           </p>
           {(['whisper', 'webspeech'] as VoiceProvider[]).map((p) => (
             <button
@@ -40,9 +47,22 @@ export function SettingsPanel({ voiceProvider, onVoiceProviderChange }: Settings
                 color: voiceProvider === p ? 'white' : 'var(--foreground)',
               }}
             >
-              {p === 'whisper' ? '🎙 Whisper (recommended)' : '🌐 Browser built-in'}
+              {p === 'whisper' ? '🤖 OpenAI (Whisper + TTS)' : '🌐 Browser built-in'}
             </button>
           ))}
+
+          <hr className="my-2" style={{ borderColor: 'var(--surface-alt)' }} />
+
+          <button
+            onClick={() => { onTTSEnabledChange(!ttsEnabled); setOpen(false); }}
+            className="w-full text-left px-3 py-2 rounded-lg text-sm transition-opacity hover:opacity-70"
+            style={{
+              backgroundColor: ttsEnabled ? 'var(--primary)' : 'transparent',
+              color: ttsEnabled ? 'white' : 'var(--foreground)',
+            }}
+          >
+            {ttsEnabled ? '🔊 Read aloud: on' : '🔇 Read aloud: off'}
+          </button>
         </div>
       )}
     </div>
