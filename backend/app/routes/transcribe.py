@@ -18,7 +18,7 @@ _MAX_AUDIO_BYTES = 25 * 1024 * 1024
 @functools.lru_cache(maxsize=1)
 def _get_whisper_client() -> AsyncOpenAI:
     """Return the shared AsyncOpenAI client, constructed once per process."""
-    return AsyncOpenAI(api_key=settings.stt_api_key or None)
+    return AsyncOpenAI(api_key=settings.stt_api_key)
 
 
 @router.post("/transcribe")
