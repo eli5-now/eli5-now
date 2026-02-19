@@ -102,6 +102,11 @@ function useOpenAITTS(): TTSHook {
 
       await audio.play();
     } catch {
+      if (blobUrlRef.current) {
+        URL.revokeObjectURL(blobUrlRef.current);
+        blobUrlRef.current = null;
+      }
+      audioRef.current = null;
       setIsSpeaking(false);
     }
   }, []);

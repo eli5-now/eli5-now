@@ -54,7 +54,7 @@ export function SettingsPanel({
           <hr className="my-2" style={{ borderColor: 'var(--surface-alt)' }} />
 
           <button
-            onClick={() => onTTSEnabledChange(!ttsEnabled)}
+            onClick={() => { onTTSEnabledChange(!ttsEnabled); setOpen(false); }}
             className="w-full text-left px-3 py-2 rounded-lg text-sm transition-opacity hover:opacity-70"
             style={{
               backgroundColor: ttsEnabled ? 'var(--primary)' : 'transparent',

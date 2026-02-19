@@ -22,8 +22,9 @@ export default function Home() {
   const tts = useTTS(voiceProvider);
 
   const handleSubmit = async (question: string) => {
-    // Unlock audio in Safari — must run synchronously within a user gesture.
-    if (ttsEnabled) tts.unlock();
+    // Stop any in-progress speech and unlock audio in Safari — must run
+    // synchronously within a user gesture.
+    if (ttsEnabled) { tts.stop(); tts.unlock(); }
 
     // Build history from current messages (before adding new question)
     const history = messages.map(({ role, content }) => ({ role, content }));
