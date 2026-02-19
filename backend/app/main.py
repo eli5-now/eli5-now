@@ -4,6 +4,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.routes.ask import router as ask_router
+from app.routes.transcribe import router as transcribe_router
 
 app = FastAPI(
     title="ELI5 Now!",
@@ -24,6 +25,7 @@ app.add_middleware(
 )
 
 app.include_router(ask_router)
+app.include_router(transcribe_router)
 
 
 @app.get("/")

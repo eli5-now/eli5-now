@@ -3,6 +3,8 @@
 import { useState } from 'react';
 import { ChatInput } from '@/components/ChatInput';
 import { MessageList } from '@/components/MessageList';
+import { SettingsPanel } from '@/components/SettingsPanel';
+import { useSettings } from '@/hooks/useSettings';
 import { askEli, StreamEvent } from '@/lib/api';
 
 interface Message {
@@ -14,6 +16,7 @@ interface Message {
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
+  const { voiceProvider, updateVoiceProvider } = useSettings();
 
   const handleSubmit = async (question: string) => {
     // Build history from current messages (before adding new question)
@@ -34,7 +37,6 @@ export default function Home() {
 
     const handleEvent = (event: StreamEvent) => {
       if (event.type === 'thinking') {
-        // Show thinking as temporary content
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== assistantId),
           { id: assistantId, role: 'assistant', content: '🤔 ' + event.content },
@@ -66,12 +68,17 @@ export default function Home() {
     <div className="flex flex-col h-screen">
       {/* Header */}
       <header
-        className="flex items-center justify-center py-4 border-b"
+        className="flex items-center justify-between px-4 py-4 border-b"
         style={{ borderColor: 'var(--surface-alt)', backgroundColor: 'var(--surface)' }}
       >
+        <div className="w-8" /> {/* Spacer to centre title */}
         <h1 className="text-2xl font-bold" style={{ color: 'var(--primary)' }}>
           ELI5 Now!
         </h1>
+        <SettingsPanel
+          voiceProvider={voiceProvider}
+          onVoiceProviderChange={updateVoiceProvider}
+        />
       </header>
 
       {/* Message area */}
@@ -87,7 +94,7 @@ export default function Home() {
         className="p-4 border-t"
         style={{ borderColor: 'var(--surface-alt)', backgroundColor: 'var(--surface)' }}
       >
-        <ChatInput onSubmit={handleSubmit} disabled={isLoading} />
+        <ChatInput onSubmit={handleSubmit} disabled={isLoading} voiceProvider={voiceProvider} />
       </footer>
     </div>
   );
