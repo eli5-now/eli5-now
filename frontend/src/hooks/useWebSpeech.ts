@@ -19,6 +19,8 @@ export function useWebSpeech(): VoiceInputHook {
   const [error, setError] = useState<string | null>(null);
   // eslint-disable-next-line @typescript-eslint/no-explicit-any
   const recognitionRef = useRef<any>(null);
+  // Accumulate results across continuous recognition events
+  const accumulatedRef = useRef<string>('');
 
   const start = useCallback(() => {
     const SpeechRecognitionAPI =
@@ -32,14 +34,21 @@ export function useWebSpeech(): VoiceInputHook {
     }
 
     const recognition = new SpeechRecognitionAPI();
-    recognition.continuous = false;
+    recognition.continuous = true;   // Keep listening until manually stopped
     recognition.interimResults = false;
     recognition.lang = 'en-US';
+    accumulatedRef.current = '';
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     recognition.onresult = (event: any) => {
-      setTranscript(event.results[0][0].transcript);
-      setIsRecording(false);
+      // Accumulate all final results (continuous mode fires multiple events)
+      let text = '';
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        if (event.results[i].isFinal) {
+          text += event.results[i][0].transcript + ' ';
+        }
+      }
+      accumulatedRef.current += text;
     };
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -54,7 +63,12 @@ export function useWebSpeech(): VoiceInputHook {
       setIsRecording(false);
     };
 
-    recognition.onend = () => setIsRecording(false);
+    // Commit accumulated transcript when recognition ends
+    recognition.onend = () => {
+      const result = accumulatedRef.current.trim();
+      if (result) setTranscript(result);
+      setIsRecording(false);
+    };
 
     recognitionRef.current = recognition;
     recognition.start();
