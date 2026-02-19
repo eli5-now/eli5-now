@@ -24,7 +24,7 @@ export default function Home() {
 
     // Add user message
     const userMessage: Message = {
-      id: Date.now().toString(),
+      id: crypto.randomUUID(),
       role: 'user',
       content: question,
     };
@@ -32,7 +32,7 @@ export default function Home() {
     setIsLoading(true);
 
     // Prepare assistant message placeholder
-    const assistantId = (Date.now() + 1).toString();
+    const assistantId = crypto.randomUUID();
     let assistantContent = '';
 
     const handleEvent = (event: StreamEvent) => {

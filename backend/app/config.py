@@ -26,7 +26,7 @@ class Settings(BaseSettings):
     # Space reserved for response generation
     response_token_buffer: int = 1500
 
-    tts_api_key: str = ""
+    stt_api_key: str = ""
 
     @field_validator("response_token_buffer")
     @classmethod
