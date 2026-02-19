@@ -8,6 +8,8 @@ export interface TTSHook {
   isSpeaking: boolean;
   speak: (text: string) => void;
   stop: () => void;
+  /** Call synchronously from a user-gesture handler to unlock audio in Safari. */
+  unlock: () => void;
 }
 
 // ---------------------------------------------------------------------------
@@ -35,7 +37,15 @@ function useWebSpeechTTS(): TTSHook {
     speechSynthesis.speak(utterance);
   }, []);
 
-  return { isSpeaking, speak, stop };
+  // Safari also blocks SpeechSynthesis on first call — speak+cancel a blank
+  // utterance from a user-gesture context to unlock it.
+  const unlock = useCallback(() => {
+    const u = new SpeechSynthesisUtterance('');
+    speechSynthesis.speak(u);
+    speechSynthesis.cancel();
+  }, []);
+
+  return { isSpeaking, speak, stop, unlock };
 }
 
 // ---------------------------------------------------------------------------
@@ -46,6 +56,7 @@ function useOpenAITTS(): TTSHook {
   const [isSpeaking, setIsSpeaking] = useState(false);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const blobUrlRef = useRef<string | null>(null);
+  const unlockedRef = useRef(false);
 
   useEffect(() => {
     return () => {
@@ -95,7 +106,18 @@ function useOpenAITTS(): TTSHook {
     }
   }, []);
 
-  return { isSpeaking, speak, stop };
+  // Safari requires the first audio.play() to be triggered by a user gesture.
+  // Call unlock() synchronously inside a click/submit handler to play a silent
+  // audio, which lifts the restriction for subsequent async plays.
+  const unlock = useCallback(() => {
+    if (unlockedRef.current) return;
+    const a = new Audio();
+    // Minimal silent WAV (1 sample, 8-bit, 8kHz)
+    a.src = 'data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEARKwAAIhYAQACABAAZGF0YQAAAAA=';
+    a.play().then(() => { unlockedRef.current = true; }).catch(() => {});
+  }, []);
+
+  return { isSpeaking, speak, stop, unlock };
 }
 
 // ---------------------------------------------------------------------------

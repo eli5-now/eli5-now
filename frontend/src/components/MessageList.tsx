@@ -4,6 +4,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  isThinking?: boolean;
 }
 
 interface MessageListProps {
@@ -33,6 +34,7 @@ export function MessageList({ messages, ttsEnabled, isSpeaking, onSpeak, onStop 
           key={message.id}
           role={message.role}
           content={message.content}
+          isThinking={message.isThinking}
           ttsEnabled={ttsEnabled}
           isSpeaking={isSpeaking}
           onSpeak={onSpeak}

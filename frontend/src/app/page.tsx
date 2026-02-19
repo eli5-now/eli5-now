@@ -12,6 +12,7 @@ interface Message {
   id: string;
   role: 'user' | 'assistant';
   content: string;
+  isThinking?: boolean;
 }
 
 export default function Home() {
@@ -21,6 +22,9 @@ export default function Home() {
   const tts = useTTS(voiceProvider);
 
   const handleSubmit = async (question: string) => {
+    // Unlock audio in Safari — must run synchronously within a user gesture.
+    if (ttsEnabled) tts.unlock();
+
     // Build history from current messages (before adding new question)
     const history = messages.map(({ role, content }) => ({ role, content }));
 
@@ -41,13 +45,13 @@ export default function Home() {
       if (event.type === 'thinking') {
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== assistantId),
-          { id: assistantId, role: 'assistant', content: '🤔 ' + event.content },
+          { id: assistantId, role: 'assistant', content: '🤔 ' + event.content, isThinking: true },
         ]);
       } else if (event.type === 'text') {
         assistantContent = event.content;
         setMessages((prev) => [
           ...prev.filter((m) => m.id !== assistantId),
-          { id: assistantId, role: 'assistant', content: assistantContent },
+          { id: assistantId, role: 'assistant', content: assistantContent, isThinking: false },
         ]);
       } else if (event.type === 'done') {
         setIsLoading(false);
