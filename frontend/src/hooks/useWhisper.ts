@@ -15,18 +15,24 @@ export function useWhisper(): VoiceInputHook {
   const chunksRef = useRef<Blob[]>([]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const stopRecorder = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
   // Clean up on unmount: stop the recorder and clear the auto-stop timer so
   // the mic indicator and background timer don't outlive the component.
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
-      mediaRecorderRef.current?.stop();
+      stopRecorder();
     };
   }, []);
 
   const stop = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    mediaRecorderRef.current?.stop();
+    stopRecorder();
     setIsRecording(false);
   }, []);
 
@@ -67,7 +73,7 @@ export function useWhisper(): VoiceInputHook {
 
       // Auto-stop after 30 seconds
       timeoutRef.current = setTimeout(() => {
-        mediaRecorderRef.current?.stop();
+        stopRecorder();
         setIsRecording(false);
       }, MAX_RECORDING_MS);
     } catch {

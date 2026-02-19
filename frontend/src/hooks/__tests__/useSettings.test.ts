@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { getStoredProvider, setStoredProvider } from '../useSettings';
 
 // ---------------------------------------------------------------------------
@@ -19,6 +19,10 @@ function mockLocalStorage(overrides: Partial<Storage> = {}) {
 // ---------------------------------------------------------------------------
 // getStoredProvider
 // ---------------------------------------------------------------------------
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 describe('getStoredProvider', () => {
   beforeEach(() => {

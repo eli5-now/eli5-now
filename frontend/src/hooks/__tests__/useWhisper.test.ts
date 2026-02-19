@@ -24,8 +24,10 @@ function makeMediaRecorderClass(audioBytes: number) {
     ondataavailable: ((e: { data: Blob }) => void) | null = null;
     onstop: (() => void) | null = null;
     mimeType = 'audio/webm';
+    state: RecordingState = 'inactive';
 
     start() {
+      this.state = 'recording';
       // Fire a single data chunk synchronously so chunks accumulate before stop
       this.ondataavailable?.({
         data: new Blob([new Uint8Array(audioBytes)], { type: 'audio/webm' }),
@@ -33,6 +35,7 @@ function makeMediaRecorderClass(audioBytes: number) {
     }
 
     stop() {
+      this.state = 'inactive';
       this.onstop?.();
     }
   };

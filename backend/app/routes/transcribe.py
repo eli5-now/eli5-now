@@ -1,5 +1,7 @@
 """Transcribe audio files using OpenAI Whisper."""
 
+import functools
+import logging
 import openai
 from fastapi import APIRouter, HTTPException, UploadFile
 from openai import AsyncOpenAI
@@ -7,20 +9,16 @@ from openai import AsyncOpenAI
 from app.config import settings
 
 router = APIRouter()
+logger = logging.getLogger(__name__)
 
 # 25 MB — matches OpenAI Whisper's own file size limit
 _MAX_AUDIO_BYTES = 25 * 1024 * 1024
 
-# Lazy singleton: constructed on first request so startup never fails when the
-# key is absent (e.g. during tests that don't use this route).
-_whisper_client: AsyncOpenAI | None = None
 
-
+@functools.lru_cache(maxsize=1)
 def _get_whisper_client() -> AsyncOpenAI:
-    global _whisper_client
-    if _whisper_client is None:
-        _whisper_client = AsyncOpenAI(api_key=settings.stt_api_key or None)
-    return _whisper_client
+    """Return the shared AsyncOpenAI client, constructed once per process."""
+    return AsyncOpenAI(api_key=settings.stt_api_key or None)
 
 
 @router.post("/transcribe")
@@ -49,6 +47,9 @@ async def transcribe(audio: UploadFile) -> dict[str, str]:
             file=(audio.filename or "recording", data, audio.content_type),
         )
     except openai.OpenAIError as exc:
-        raise HTTPException(status_code=502, detail=f"Transcription service error: {exc}") from exc
+        logger.exception("OpenAI Whisper transcription failed: %s", exc)
+        raise HTTPException(
+            status_code=502, detail="Transcription service unavailable. Please try again."
+        ) from exc
 
     return {"transcript": transcript.text}

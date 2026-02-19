@@ -172,7 +172,7 @@ async def test_transcribe_returns_502_on_openai_error(client):
         )
 
     assert response.status_code == 502
-    assert "Transcription service error" in response.json()["detail"]
+    assert "Transcription service unavailable" in response.json()["detail"]
 
 
 @pytest.mark.asyncio
@@ -200,11 +200,11 @@ async def test_transcribe_returns_502_on_connection_error(client):
 # ---------------------------------------------------------------------------
 
 def test_get_whisper_client_returns_same_instance():
-    """_get_whisper_client() must return the same object on repeated calls."""
+    """_get_whisper_client() must return the same object on repeated calls (lru_cache)."""
     import app.routes.transcribe as mod
 
-    # Reset singleton so the test is independent of call order
-    mod._whisper_client = None
+    # Clear the lru_cache so this test is independent of call order
+    mod._get_whisper_client.cache_clear()
 
     with patch("app.routes.transcribe.AsyncOpenAI") as MockOpenAI:
         MockOpenAI.return_value = MagicMock()
