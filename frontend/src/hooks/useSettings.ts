@@ -3,27 +3,43 @@
 import { useState } from 'react';
 import { VoiceProvider } from './useVoiceInput';
 
-const STORAGE_KEY = 'voiceProvider';
+const PROVIDER_KEY = 'voiceProvider';
+const TTS_ENABLED_KEY = 'ttsEnabled';
 const VALID_PROVIDERS: VoiceProvider[] = ['whisper', 'webspeech'];
 
 // Exported so they can be unit-tested independently of the hook.
 export function getStoredProvider(): VoiceProvider {
   try {
-    const stored = localStorage.getItem(STORAGE_KEY);
+    const stored = localStorage.getItem(PROVIDER_KEY);
     return VALID_PROVIDERS.includes(stored as VoiceProvider)
       ? (stored as VoiceProvider)
       : 'whisper';
   } catch {
-    // localStorage is unavailable in private/incognito mode on some browsers.
     return 'whisper';
   }
 }
 
 export function setStoredProvider(provider: VoiceProvider): void {
   try {
-    localStorage.setItem(STORAGE_KEY, provider);
+    localStorage.setItem(PROVIDER_KEY, provider);
   } catch {
-    // Silently ignore — the in-memory state still works for the session.
+    // Silently ignore — in-memory state still works for the session.
+  }
+}
+
+export function getStoredTTSEnabled(): boolean {
+  try {
+    return localStorage.getItem(TTS_ENABLED_KEY) === 'true';
+  } catch {
+    return false;
+  }
+}
+
+export function setStoredTTSEnabled(enabled: boolean): void {
+  try {
+    localStorage.setItem(TTS_ENABLED_KEY, String(enabled));
+  } catch {
+    // Silently ignore.
   }
 }
 
@@ -33,10 +49,20 @@ export function useSettings() {
     return getStoredProvider();
   });
 
+  const [ttsEnabled, setTTSEnabled] = useState<boolean>(() => {
+    if (typeof window === 'undefined') return false;
+    return getStoredTTSEnabled();
+  });
+
   const updateVoiceProvider = (provider: VoiceProvider) => {
     setVoiceProvider(provider);
     setStoredProvider(provider);
   };
 
-  return { voiceProvider, updateVoiceProvider };
+  const updateTTSEnabled = (enabled: boolean) => {
+    setTTSEnabled(enabled);
+    setStoredTTSEnabled(enabled);
+  };
+
+  return { voiceProvider, updateVoiceProvider, ttsEnabled, updateTTSEnabled };
 }

@@ -8,9 +8,13 @@ interface Message {
 
 interface MessageListProps {
   messages: Message[];
+  ttsEnabled?: boolean;
+  isSpeaking?: boolean;
+  onSpeak?: (text: string) => void;
+  onStop?: () => void;
 }
 
-export function MessageList({ messages }: MessageListProps) {
+export function MessageList({ messages, ttsEnabled, isSpeaking, onSpeak, onStop }: MessageListProps) {
   if (messages.length === 0) {
     return (
       <p
@@ -29,6 +33,10 @@ export function MessageList({ messages }: MessageListProps) {
           key={message.id}
           role={message.role}
           content={message.content}
+          ttsEnabled={ttsEnabled}
+          isSpeaking={isSpeaking}
+          onSpeak={onSpeak}
+          onStop={onStop}
         />
       ))}
     </div>

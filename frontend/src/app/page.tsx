@@ -5,6 +5,7 @@ import { ChatInput } from '@/components/ChatInput';
 import { MessageList } from '@/components/MessageList';
 import { SettingsPanel } from '@/components/SettingsPanel';
 import { useSettings } from '@/hooks/useSettings';
+import { useTTS } from '@/hooks/useTTS';
 import { askEli, StreamEvent } from '@/lib/api';
 
 interface Message {
@@ -16,7 +17,8 @@ interface Message {
 export default function Home() {
   const [messages, setMessages] = useState<Message[]>([]);
   const [isLoading, setIsLoading] = useState(false);
-  const { voiceProvider, updateVoiceProvider } = useSettings();
+  const { voiceProvider, updateVoiceProvider, ttsEnabled, updateTTSEnabled } = useSettings();
+  const tts = useTTS(voiceProvider);
 
   const handleSubmit = async (question: string) => {
     // Build history from current messages (before adding new question)
@@ -49,6 +51,7 @@ export default function Home() {
         ]);
       } else if (event.type === 'done') {
         setIsLoading(false);
+        if (ttsEnabled && assistantContent) tts.speak(assistantContent);
       }
     };
 
@@ -78,6 +81,8 @@ export default function Home() {
         <SettingsPanel
           voiceProvider={voiceProvider}
           onVoiceProviderChange={updateVoiceProvider}
+          ttsEnabled={ttsEnabled}
+          onTTSEnabledChange={updateTTSEnabled}
         />
       </header>
 
@@ -86,7 +91,13 @@ export default function Home() {
         className="flex-1 overflow-y-auto p-4"
         style={{ backgroundColor: 'var(--background)' }}
       >
-        <MessageList messages={messages} />
+        <MessageList
+          messages={messages}
+          ttsEnabled={ttsEnabled}
+          isSpeaking={tts.isSpeaking}
+          onSpeak={tts.speak}
+          onStop={tts.stop}
+        />
       </main>
 
       {/* Input area */}
