@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { VoiceInputHook } from './useVoiceInput';
 
 // SpeechRecognition is not fully typed in standard TS DOM types
@@ -21,6 +21,14 @@ export function useWebSpeech(): VoiceInputHook {
   const recognitionRef = useRef<any>(null);
   // Accumulate results across continuous recognition events
   const accumulatedRef = useRef<string>('');
+
+  // Stop any in-progress recognition when the component unmounts so the mic
+  // indicator goes away and the browser releases the audio stream.
+  useEffect(() => {
+    return () => {
+      recognitionRef.current?.stop();
+    };
+  }, []);
 
   const start = useCallback(() => {
     const SpeechRecognitionAPI =

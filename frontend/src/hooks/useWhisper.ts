@@ -1,6 +1,6 @@
 'use client';
 
-import { useCallback, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { transcribeAudio } from '@/lib/api';
 import { VoiceInputHook } from './useVoiceInput';
 
@@ -15,9 +15,24 @@ export function useWhisper(): VoiceInputHook {
   const chunksRef = useRef<Blob[]>([]);
   const timeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
+  const stopRecorder = () => {
+    if (mediaRecorderRef.current?.state === 'recording') {
+      mediaRecorderRef.current.stop();
+    }
+  };
+
+  // Clean up on unmount: stop the recorder and clear the auto-stop timer so
+  // the mic indicator and background timer don't outlive the component.
+  useEffect(() => {
+    return () => {
+      if (timeoutRef.current) clearTimeout(timeoutRef.current);
+      stopRecorder();
+    };
+  }, []);
+
   const stop = useCallback(() => {
     if (timeoutRef.current) clearTimeout(timeoutRef.current);
-    mediaRecorderRef.current?.stop();
+    stopRecorder();
     setIsRecording(false);
   }, []);
 
@@ -34,6 +49,12 @@ export function useWhisper(): VoiceInputHook {
       mediaRecorder.onstop = async () => {
         stream.getTracks().forEach((t) => t.stop());
         const blob = new Blob(chunksRef.current, { type: mediaRecorder.mimeType });
+
+        if (blob.size === 0) {
+          // Nothing was captured (user stopped immediately or mic was silent).
+          return;
+        }
+
         setIsProcessing(true);
         try {
           const text = await transcribeAudio(blob);
@@ -52,7 +73,7 @@ export function useWhisper(): VoiceInputHook {
 
       // Auto-stop after 30 seconds
       timeoutRef.current = setTimeout(() => {
-        mediaRecorderRef.current?.stop();
+        stopRecorder();
         setIsRecording(false);
       }, MAX_RECORDING_MS);
     } catch {
