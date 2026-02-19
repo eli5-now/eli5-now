@@ -29,7 +29,7 @@ export function useVoiceInput(provider: VoiceProvider): VoiceInputHook {
     } else {
       whisper.stop();
     }
-  }, [provider]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [provider, webSpeech.stop, whisper.stop]);
 
   return provider === 'whisper' ? whisper : webSpeech;
 }
