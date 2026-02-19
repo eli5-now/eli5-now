@@ -21,12 +21,15 @@ export function useWhisper(): VoiceInputHook {
     }
   };
 
-  // Clean up on unmount: stop the recorder and clear the auto-stop timer so
-  // the mic indicator and background timer don't outlive the component.
+  // Clean up on unmount: stop the recorder, release stream tracks, and clear
+  // the auto-stop timer so nothing outlives the component.
   useEffect(() => {
     return () => {
       if (timeoutRef.current) clearTimeout(timeoutRef.current);
       stopRecorder();
+      // Safety net: stop stream tracks directly in case onstop doesn't fire
+      // (MediaRecorder.stream is a standard readonly property)
+      mediaRecorderRef.current?.stream?.getTracks().forEach((t) => t.stop());
     };
   }, []);
 
@@ -59,7 +62,8 @@ export function useWhisper(): VoiceInputHook {
         try {
           const text = await transcribeAudio(blob);
           setTranscript(text);
-        } catch {
+        } catch (err) {
+          console.error('Transcription failed:', err);
           setError('Transcription failed. Please try again.');
         } finally {
           setIsProcessing(false);
@@ -76,8 +80,13 @@ export function useWhisper(): VoiceInputHook {
         stopRecorder();
         setIsRecording(false);
       }, MAX_RECORDING_MS);
-    } catch {
-      setError('Microphone access denied. Please allow microphone access.');
+    } catch (err) {
+      if (err instanceof DOMException && err.name === 'NotAllowedError') {
+        setError('Microphone access denied. Please allow microphone access.');
+      } else {
+        console.error('Failed to start recording:', err);
+        setError('Could not start recording. Your browser may not support this feature.');
+      }
     }
   }, []);
 
