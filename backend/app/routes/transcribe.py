@@ -24,6 +24,12 @@ def _get_whisper_client() -> AsyncOpenAI:
 @router.post("/transcribe")
 async def transcribe(audio: UploadFile) -> dict[str, str]:
     """Transcribe an audio file using OpenAI Whisper."""
+    if not settings.stt_api_key:
+        raise HTTPException(
+            status_code=503,
+            detail="Speech-to-text is not configured. Set STT_API_KEY on the server.",
+        )
+
     if not (audio.content_type or "").startswith("audio/"):
         raise HTTPException(
             status_code=415,

@@ -1,5 +1,6 @@
 'use client';
 
+import { useEffect } from 'react';
 import { useWebSpeech } from './useWebSpeech';
 import { useWhisper } from './useWhisper';
 
@@ -19,5 +20,16 @@ export interface VoiceInputHook {
 export function useVoiceInput(provider: VoiceProvider): VoiceInputHook {
   const webSpeech = useWebSpeech();
   const whisper = useWhisper();
+
+  // When the provider changes, stop the now-inactive hook so it doesn't
+  // keep holding the mic with no way for the user to stop it.
+  useEffect(() => {
+    if (provider === 'whisper') {
+      webSpeech.stop();
+    } else {
+      whisper.stop();
+    }
+  }, [provider]); // eslint-disable-line react-hooks/exhaustive-deps
+
   return provider === 'whisper' ? whisper : webSpeech;
 }

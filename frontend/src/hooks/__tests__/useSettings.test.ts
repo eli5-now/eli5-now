@@ -38,6 +38,11 @@ describe('getStoredProvider', () => {
     expect(getStoredProvider()).toBe('webspeech');
   });
 
+  it('returns "whisper" for an unrecognised stored value (corrupted storage)', () => {
+    localStorage.setItem('voiceProvider', 'youtube');
+    expect(getStoredProvider()).toBe('whisper');
+  });
+
   it('returns "whisper" when localStorage.getItem throws (e.g. private browsing)', () => {
     vi.stubGlobal('localStorage', mockLocalStorage({
       getItem: vi.fn(() => { throw new DOMException('SecurityError'); }),

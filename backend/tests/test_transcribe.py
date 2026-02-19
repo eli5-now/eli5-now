@@ -6,6 +6,14 @@ from unittest.mock import AsyncMock, MagicMock, patch
 import openai
 import pytest
 
+from app.config import settings as app_settings
+
+
+@pytest.fixture(autouse=True)
+def stt_api_key_set(monkeypatch):
+    """Provide a dummy STT key so the key-present guard doesn't block other tests."""
+    monkeypatch.setattr(app_settings, "stt_api_key", "test-key")
+
 
 # ---------------------------------------------------------------------------
 # Helpers
@@ -193,6 +201,27 @@ async def test_transcribe_returns_502_on_connection_error(client):
         )
 
     assert response.status_code == 502
+
+
+# ---------------------------------------------------------------------------
+# Missing API key
+# ---------------------------------------------------------------------------
+
+@pytest.mark.asyncio
+async def test_transcribe_returns_503_when_stt_api_key_not_set(client):
+    """A missing STT_API_KEY must return 503, not a confusing OpenAI 502."""
+    data, content_type = _audio_bytes()
+
+    with patch("app.routes.transcribe.settings") as mock_settings:
+        mock_settings.stt_api_key = None
+
+        response = await client.post(
+            "/transcribe",
+            files={"audio": ("recording.webm", io.BytesIO(data), content_type)},
+        )
+
+    assert response.status_code == 503
+    assert "STT_API_KEY" in response.json()["detail"]
 
 
 # ---------------------------------------------------------------------------

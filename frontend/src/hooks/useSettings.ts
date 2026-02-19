@@ -4,11 +4,15 @@ import { useState } from 'react';
 import { VoiceProvider } from './useVoiceInput';
 
 const STORAGE_KEY = 'voiceProvider';
+const VALID_PROVIDERS: VoiceProvider[] = ['whisper', 'webspeech'];
 
 // Exported so they can be unit-tested independently of the hook.
 export function getStoredProvider(): VoiceProvider {
   try {
-    return (localStorage.getItem(STORAGE_KEY) as VoiceProvider) ?? 'whisper';
+    const stored = localStorage.getItem(STORAGE_KEY);
+    return VALID_PROVIDERS.includes(stored as VoiceProvider)
+      ? (stored as VoiceProvider)
+      : 'whisper';
   } catch {
     // localStorage is unavailable in private/incognito mode on some browsers.
     return 'whisper';
