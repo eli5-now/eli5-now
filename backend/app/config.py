@@ -26,6 +26,8 @@ class Settings(BaseSettings):
     # Space reserved for response generation
     response_token_buffer: int = 1500
 
+    stt_api_key: str | None = None
+
     @field_validator("response_token_buffer")
     @classmethod
     def validate_response_token_buffer(cls, v: int, info) -> int:

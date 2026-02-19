@@ -1,5 +1,14 @@
 const API_URL = 'http://localhost:8000';
 
+export async function transcribeAudio(blob: Blob): Promise<string> {
+  const formData = new FormData();
+  formData.append('audio', blob, 'recording.webm');
+  const res = await fetch(`${API_URL}/transcribe`, { method: 'POST', body: formData });
+  if (!res.ok) throw new Error(`Transcription error: ${res.status}`);
+  const data = await res.json();
+  return data.transcript;
+}
+
 export interface StreamEvent {
   type: 'thinking' | 'text' | 'image' | 'done';
   content: string;

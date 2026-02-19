@@ -8,7 +8,9 @@ authors = [
     {name = "Srikanth Cherla"}
 ]
 license = {text = "MIT"}
-dependencies = []
+dependencies = [
+    "python-multipart>=0.0.22",
+]
 
 [dependency-groups]
 api = [
